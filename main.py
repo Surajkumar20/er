@@ -1,11 +1,19 @@
-import storage as st
+import filestuff as fs
+import framework as fw
+import numpy as np
 
 if __name__ == "__main__":
 
-    code = st.codeObject("codenoe1.txt")
-    print(code.moveCodeDF)
-    print(code.AxEffort(code.moveCodeDF))
-    if (code.extAxUse()):
-        print("We used the external axis in this code")
+    code = fs.codeObject("old_code.src", "good.src")
+    print(code.oldcodeDF)
+    #print(code.oldcodeDF.at[3, "E1"])
+    code.codeWrite(code.oldcodeDF)
+    """ This code is to see if any particuar axis was used
+    print(code.AxEffort(code.oldcodeDF))
+    if (code.AxUse(["C"])):
+        print("We used the C ax for code")
     else:
-        print("No external axis was hurt here today")
+        print("C axis was not hurt today") """
+
+    '''inertial = fw.frame()
+    table = fw.frame(inertial, )'''

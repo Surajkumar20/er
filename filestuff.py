@@ -9,8 +9,8 @@ class codeObject:
         self.newfilename = new
         self.fullCode_strls = self.oldCodeRead() # As a string
         #print(self.fullCode_strls)
-        self.moveCode_strls = self.preprocess(self.fullCode_strls)
-        self.moveCodeDF = self.dataFraming(self.moveCode_strls)
+        self.code_strls = self.preprocess(self.fullCode_strls)
+        self.oldcodeDF = self.dataFraming(self.code_strls)
         self.oldCodeAxEf = [] # This variable will be updated once we call the external axis effort graph
 
     """ This code will save lines that start with LIN, ARC, or PTP into a list of strings """
@@ -45,12 +45,14 @@ class codeObject:
             output.append(line.replace('\n', ""))
 
         return output
-    
-    """ Reads in an array of commands to be input """
-    def newCode(self, cmd):
-        fp = open(self.newfilename, "a")
-        for line in cmd:
-            fp.write(line + "\n")
+
+    """ Writes new code from a complete DF into a file """
+    def codeWrite(self, codeDF):
+        fp = open(self.newfilename, "w")
+
+        for index, row in codeDF.iterrows():
+            fp.write("{} {{X {}, Y {}, Z {}, A {}, B {}, C {}, E1 {}}} {}\n".format(codeDF.at[index, "cmd"], codeDF.at[index, "X"], codeDF.at[index, "Y"], codeDF.at[index, "Z"], codeDF.at[index, "A"], codeDF.at[index, "B"], codeDF.at[index, "C"], codeDF.at[index, "E1"], "C_DIS" if codeDF.at[index, "C_DIS"] else ""))
+
         fp.close()
         return
 
@@ -63,15 +65,15 @@ class codeObject:
         def dictnum2dictls(dictitself):
             for key in dictitself.keys():
                 dictitself[key] = [dictitself[key]]
-            
+
             return dictitself
-        
+
         """ ***********************************************
         Function to take line of code and return dict
         with details of the KRL code ************** """
         def krl2dict(krl_code):
             output = {}
-            
+
             # Get the first LIN or ARC or PTP command
             krl_code = krl_code.split("{")
             output["cmd"] = krl_code[0]
@@ -94,19 +96,28 @@ class codeObject:
                     output["C_DIS"] = False
 
             return output
-        
+
          # Returns code line by line
         count = 0 # This code is because the first line does not have a datastructure to join into. So we need to make it the matriach
         output = []
 
         for line in code:
             if count == 0:
-                output = pd.DataFrame(dictnum2dictls(krl2dict(line)))
-                count = 1
+                if (line[0: (2+1)] == "LIN") or (line[0: (2+1)] == "PTP") or (line[0: (2+1)] == "ARC"):
+                    misc_dict = {"MISC":[line]}
+                    output = pd.DataFrame(misc_dict)
+                else:
+                    output = pd.DataFrame(dictnum2dictls(krl2dict(line)))
+                    count = 1
                 continue
             else:
-                newDF = pd.DataFrame((dictnum2dictls(krl2dict(line))))
-                output = pd.concat([output, newDF], ignore_index=True)
+                if (line[0: (2+1)] == "LIN") or (line[0: (2+1)] == "PTP") or (line[0: (2+1)] == "ARC"):
+                    misc_dict = {"MISC":[line]}
+                    output = pd.DataFrame(misc_dict)
+                else:
+                    newDF = pd.DataFrame((dictnum2dictls(krl2dict(line))))
+                    output = pd.concat([output, newDF], ignore_index=True)
+                continue
                 
         if "E1" not in output:
             output["E1"] = 0
@@ -138,13 +149,32 @@ class codeObject:
             emptytable = (self.oldCodeAxEf["E1_work"] != 0).sum() - 1
         except:
             print("Effort Table was not calculated for this code.  Currently calculating!")
-            eft = self.oldCodeAxEf(self.moveCodeDF)
+            eft = self.oldCodeAxEf(self.codeDF)
         finally:
             # If the code does no work
             if ((self.oldCodeAxEf["E1_work"] != 0).sum()-1) <= 0:
                 return False
             else:
                 return True
+        
+    """ ***********************************************
+        Same function as extAxUse, but taking in a list
+        of axes so that we can do it for multiple axes """
+    def AxUse(self, ax_ls):
+        output = []
+        for ax in ax_ls:
+            try:
+                emptyTable = (self.oldCodeAxEf[ax] != 0).sum() - 1
+            except:
+                print("Effort Table was not calculated for this code. Currently calculating!")
+                eft = self.oldCodeAxEf(self.oldcodeDF)
+            finally:
+                # If the code does no work
+                if ((self.oldCodeAxEf[ax] != 0).sum()-1) <= 0:
+                    output.append(False)
+                else:
+                    output.append(True)        
+        return output
 
     """ ***********************************************
         Function to graph out the position that the 
@@ -173,4 +203,9 @@ class codeObject:
         plt.legend()
         plt.show()
 
+        return
+    
+    """ ***********************************************
+        Quick loader. Reading in line by line       """
+    def quickDF(self):
         return
