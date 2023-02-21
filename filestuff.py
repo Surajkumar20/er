@@ -10,7 +10,7 @@ class codeObject:
         self.fullCode_strls = self.oldCodeRead() # As a string
         #print(self.fullCode_strls)
         self.code_strls = self.preprocess(self.fullCode_strls)
-        self.oldcodeDF = self.dataFraming(self.code_strls)
+        self.oldcodeDF = self.dataFraming(self.fullCode_strls)
         self.oldCodeAxEf = [] # This variable will be updated once we call the external axis effort graph
 
     """ This code will save lines that start with LIN, ARC, or PTP into a list of strings """
@@ -100,10 +100,11 @@ class codeObject:
          # Returns code line by line
         count = 0 # This code is because the first line does not have a datastructure to join into. So we need to make it the matriach
         output = []
+        cmd_ls = ['LIN', 'PTP', 'ARC']
 
         for line in code:
             if count == 0:
-                if (line[0: (2+1)] == "LIN") or (line[0: (2+1)] == "PTP") or (line[0: (2+1)] == "ARC"):
+                if line[0: (2+1)] not in cmd_ls:
                     misc_dict = {"MISC":[line]}
                     output = pd.DataFrame(misc_dict)
                 else:
@@ -111,7 +112,7 @@ class codeObject:
                     count = 1
                 continue
             else:
-                if (line[0: (2+1)] == "LIN") or (line[0: (2+1)] == "PTP") or (line[0: (2+1)] == "ARC"):
+                if line[0: (2+1)] not in cmd_ls:
                     misc_dict = {"MISC":[line]}
                     output = pd.DataFrame(misc_dict)
                 else:

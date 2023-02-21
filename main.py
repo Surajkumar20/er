@@ -4,10 +4,10 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    code = fs.codeObject("old_code.src", "good.src")
+    code = fs.codeObject("old_code.src")
     print(code.oldcodeDF)
     #print(code.oldcodeDF.at[3, "E1"])
-    code.codeWrite(code.oldcodeDF)
+    #code.codeWrite(code.oldcodeDF)
     """ This code is to see if any particuar axis was used
     print(code.AxEffort(code.oldcodeDF))
     if (code.AxUse(["C"])):
