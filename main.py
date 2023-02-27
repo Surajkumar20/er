@@ -4,8 +4,13 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    code = fs.codeObject("old_code.src")
-    print(code.oldcodeDF)
+    code = fs.codeObject("hey.txt")
+    #print(code.oldcodeDF)
+   # print(code.fullCode_strls)
+    print(code.quickDF())
+
+
+
     #print(code.oldcodeDF.at[3, "E1"])
     #code.codeWrite(code.oldcodeDF)
     """ This code is to see if any particuar axis was used

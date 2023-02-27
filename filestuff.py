@@ -7,10 +7,9 @@ class codeObject:
     def __init__(self, old="old_code.src", new="new_code.src"):
         self.oldfilename = old
         self.newfilename = new
-        self.fullCode_strls = self.oldCodeRead() # As a string
+        self.fullCode_strls = self.oldCodeRead() # As a string ls
         #print(self.fullCode_strls)
-        self.code_strls = self.preprocess(self.fullCode_strls)
-        self.oldcodeDF = self.dataFraming(self.fullCode_strls)
+        self.oldcodeDF = self.quickDF()
         self.oldCodeAxEf = [] # This variable will be updated once we call the external axis effort graph
 
     """ This code will save lines that start with LIN, ARC, or PTP into a list of strings """
@@ -209,4 +208,68 @@ class codeObject:
     """ ***********************************************
         Quick loader. Reading in line by line       """
     def quickDF(self):
-        return
+        cmds = ["LIN", "ARC", "PTP"] # List of potential cmds
+        count = 0
+        output = pd.DataFrame()
+
+        with open(self.oldfilename, "r") as fp:
+            for line in fp:
+                line = line.replace("\n", "")
+                dictt = {}
+                
+                """ If this is the first line read in """
+                if count == 0:
+                    """ If this is a normal KRL command """
+                    if line[0: (2+1)] in cmds:
+                        line = line.split("{")
+                        dictt["CMD"] = [line[0].split(" ")[0]]
+                        line1 = line[1].split("}")
+                        
+                        """ If there is a CDIS or CVEL """
+                        if line1.__len__() == 2:
+                            line1[1] = line1[1].replace(" ", "")
+                            dictt["APO"] = [line1[1]]
+
+                        line1 = line1[0].split(", ")
+                        """ For the X 0.0, Y 0.0 ... """
+                        for poss in line1:
+                            foo = poss.split(" ")
+                            dictt[foo[0]] = [eval(foo[1].replace("}", ""))]
+                        
+                        output = pd.DataFrame(dictt)
+                        count = 1
+                    
+                    else:
+                       print("Made it here")
+                       dictt["MISC"] = [line]
+                    
+                    continue
+                
+                """ If this is not the first line read in """
+                """ If this is a normal KRL command """
+                if line[0: (2+1)] in cmds:
+                    line = line.split("{")
+                    dictt["CMD"] = [line[0].split(" ")[0]]
+                    line1 = line[1].split("}")
+                    if line1.__len__() == 2:
+                        dictt["APO"] = [line1[1]]
+                    line1 = line1[0].split(", ")
+                    
+                    """ For the X 0.0, Y 0.0 ... """
+                    for poss in line1:
+                        foo = poss.split(" ")
+                        dictt[foo[0]] = [eval(foo[1].replace("}", ""))]
+                    
+                    newDF = pd.DataFrame(dictt)
+                    output = pd.concat([output, newDF], ignore_index=True)
+                    count = 1
+                
+                else:
+                    """ If this is an abnormal KRL command"""
+                    print("Made it here")
+                    dictt["MISC"] = [line]                
+
+        if "E1" not in output:
+            output["E1"] = 0
+
+        return output.fillna(0)
