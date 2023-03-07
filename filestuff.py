@@ -7,7 +7,7 @@ class codeObject:
     def __init__(self, old="old_code.src", new="new_code.src"):
         self.oldfilename = old
         self.newfilename = new
-        self.fullCode_strls = self.oldCodeRead() # As a string ls
+        #self.fullCode_strls = self.oldCodeRead() # As a string ls
         #print(self.fullCode_strls)
         self.oldcodeDF = self.quickDF()
         self.oldCodeAxEf = [] # This variable will be updated once we call the external axis effort graph
@@ -205,71 +205,57 @@ class codeObject:
 
         return
     
-    """ ***********************************************
-        Quick loader. Reading in line by line       """
+    """ Command to parse input string and return a python dictionary containing the code """
+    def parse_string(self, s):
+        output = {'CMD': '', 'POST_CMD': False, 'MISC': ''} # Initializing the output dictionary
+        try:
+            # Extract command and post command (if any)
+            cmd_and_post = s.split('} ')[1].split()
+            if len(cmd_and_post) > 0:
+                output['CMD'] = [s.split(' ')[0]]
+                output['POST_CMD'] = [cmd_and_post[0]]
+            
+            # Extract key-value pairs inside curly braces
+            kv_pairs = s.split('{')[1].split('}')[0].split(',')
+            for kv in kv_pairs:
+                k, v = kv.split()
+                output[k] = [float(v)]
+                
+            return output
+        except:
+            output['MISC'] = [s]
+            return output
+
+    ''' Second version of sparse_string. Needs to be further improved '''
+    def sparse_string(self, s):
+        result = {'MISC': []}
+        match = re.match(r'(\w+)\s+{((?:\w+\s+\d+(?:\.\d+)?,?\s*)+)}\s*(\w+)?', s)
+        if match:
+            result['CMD'] = match.group(1)
+            result['POST_CMD'] = match.group(3) or False
+            key_values = [s.strip().split(' ') for s in match.group(2).split(',')]
+            for kv in key_values:
+                key, value = kv
+                if key not in result:
+                    result[key] = []
+                result[key].append(float(value))
+            df = pd.DataFrame(result)
+            return df
+        else:
+            result['MISC'].append(s)
+            return pd.DataFrame(result)
+        
+    """ Command to quickly load code from a file into a pandas dataframe """
     def quickDF(self):
-        cmds = ["LIN", "ARC", "PTP"] # List of potential cmds
-        count = 0
         output = pd.DataFrame()
 
+        """ Reading in the code from the old filename """
         with open(self.oldfilename, "r") as fp:
-            for line in fp:
+
+            for line in fp.readlines():
                 line = line.replace("\n", "")
-                dictt = {}
-                
-                """ If this is the first line read in """
-                if count == 0:
-                    """ If this is a normal KRL command """
-                    if line[0: (2+1)] in cmds:
-                        line = line.split("{")
-                        dictt["CMD"] = [line[0].split(" ")[0]]
-                        line1 = line[1].split("}")
-                        
-                        """ If there is a CDIS or CVEL """
-                        if line1.__len__() == 2:
-                            line1[1] = line1[1].replace(" ", "")
-                            dictt["APO"] = [line1[1]]
+                #print(self.parse_string(line))
+                df = pd.DataFrame(self.parse_string(line))
+                output = pd.concat([output, df], ignore_index=True)
 
-                        line1 = line1[0].split(", ")
-                        """ For the X 0.0, Y 0.0 ... """
-                        for poss in line1:
-                            foo = poss.split(" ")
-                            dictt[foo[0]] = [eval(foo[1].replace("}", ""))]
-                        
-                        output = pd.DataFrame(dictt)
-                        count = 1
-                    
-                    else:
-                       print("Made it here")
-                       dictt["MISC"] = [line]
-                    
-                    continue
-                
-                """ If this is not the first line read in """
-                """ If this is a normal KRL command """
-                if line[0: (2+1)] in cmds:
-                    line = line.split("{")
-                    dictt["CMD"] = [line[0].split(" ")[0]]
-                    line1 = line[1].split("}")
-                    if line1.__len__() == 2:
-                        dictt["APO"] = [line1[1]]
-                    line1 = line1[0].split(", ")
-                    
-                    """ For the X 0.0, Y 0.0 ... """
-                    for poss in line1:
-                        foo = poss.split(" ")
-                        dictt[foo[0]] = [eval(foo[1].replace("}", ""))]
-                    
-                    newDF = pd.DataFrame(dictt)
-                    output = pd.concat([output, newDF], ignore_index=True)
-                    count = 1
-                
-                else:
-                    """ If this is an abnormal KRL command"""
-                    print("Made it here")
-                    dictt["MISC"] = [line]                
-
-        if "E1" not in output:
-            output["E1"] = 0
-
-        return output.fillna(0)
+        return output

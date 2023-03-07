@@ -1,14 +1,17 @@
 import filestuff as fs
 import framework as fw
-import numpy as np
 
 if __name__ == "__main__":
 
-    code = fs.codeObject("hey.txt")
-    #print(code.oldcodeDF)
-   # print(code.fullCode_strls)
-    print(code.quickDF())
+    codex = fs.codeObject(old="s1001_1.src")
+    value = codex.oldcodeDF
+    print(value)
+    print(value.loc[10:50,'CMD':'E1'])
 
+    '''print(codex.parse_string(str1))
+    print(codex.parse_string(str2))
+    print(codex.parse_string(str3))
+    print(codex.parse_string(str4))'''
 
 
     #print(code.oldcodeDF.at[3, "E1"])
